@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <title>drow.io- a game that you can play and draw with your friends</title>
+  <style>
+    body { margin:0; overflow:hidden; background:white; }
+    canvas { display:block; cursor: crosshair; }
+
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .color {
+      width: 25px;
+      height: 25px;
+      display: inline-block;
+      margin: 2px;
+      border: 2px solid #333;
+      cursor: pointer;
+    }
+
+    button { margin-top: 5px; }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <div id="palette"></div>
+  <button onclick="clearBoard()">Clear</button>
+</div>
+
+<canvas id="c"></canvas>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let drawing = false;
+let last = null;
+let color = "black";
+
+// 🎨 ألوان كثيرة
+const colors = [
+  "black", "white", "red", "blue", "green",
+  "yellow", "purple", "orange", "pink",
+  "brown", "gray", "cyan", "lime",
+  "#ff0080", "#00ffcc", "#ffcc00",
+  "#6600ff", "#ff3300", "#00aaff"
+];
+
+// إنشاء لوحة الألوان
+const palette = document.getElementById("palette");
+
+colors.forEach(c => {
+  let div = document.createElement("div");
+  div.className = "color";
+  div.style.background = c;
+  div.onclick = () => color = c;
+  palette.appendChild(div);
+});
+
+// استقبال الرسم القديم
+socket.on("init", (strokes) => {
+  strokes.forEach(drawLine);
+});
+
+socket.on("draw", (data) => {
+  drawLine(data);
+});
+
+socket.on("clear", () => {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+});
+
+canvas.addEventListener("mousedown", (e) => {
+  drawing = true;
+  last = { x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  last = null;
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!drawing) return;
+
+  let current = { x: e.clientX, y: e.clientY };
+
+  let data = {
+    x1: last.x,
+    y1: last.y,
+    x2: current.x,
+    y2: current.y,
+    color: color
+  };
+
+  drawLine(data);
+  socket.emit("draw", data);
+
+  last = current;
+});
+
+function drawLine(data) {
+  ctx.strokeStyle = data.color;
+  ctx.lineWidth = 3;
+
+  ctx.beginPath();
+  ctx.moveTo(data.x1, data.y1);
+  ctx.lineTo(data.x2, data.y2);
+  ctx.stroke();
+}
+
+function clearBoard() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  socket.emit("clear");
+}
+</script>
+
+</body>
+</html>
