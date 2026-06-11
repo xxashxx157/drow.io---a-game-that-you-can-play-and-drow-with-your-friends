@@ -1,11 +1,21 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-  <title>drow.io- a game that you can play and draw with your friends</title
-  <link rel="icon" type="image/png" href="icon.png"> 
+  <meta charset="UTF-8">
+  <title>drow.io - a game that you can play and draw with your friends</title>
+  <link rel="icon" type="image/png" href="icon.png">
+
   <style>
-    body { margin:0; overflow:hidden; background:white; }
-    canvas { display:block; cursor: crosshair; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: white;
+    }
+
+    canvas {
+      display: block;
+      cursor: crosshair;
+    }
 
     #ui {
       position: absolute;
@@ -25,7 +35,9 @@
       cursor: pointer;
     }
 
-    button { margin-top: 5px; }
+    button {
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
@@ -44,34 +56,40 @@ const socket = io();
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
 let drawing = false;
 let last = null;
 let color = "black";
 
-// 🎨 ألوان كثيرة
 const colors = [
-  "black", "white", "red", "blue", "green",
-  "yellow", "purple", "orange", "pink",
-  "brown", "gray", "cyan", "lime",
-  "#ff0080", "#00ffcc", "#ffcc00",
-  "#6600ff", "#ff3300", "#00aaff"
+  "black","white","red","blue","green",
+  "yellow","purple","orange","pink",
+  "brown","gray","cyan","lime",
+  "#ff0080","#00ffcc","#ffcc00",
+  "#6600ff","#ff3300","#00aaff"
 ];
 
-// إنشاء لوحة الألوان
 const palette = document.getElementById("palette");
 
 colors.forEach(c => {
-  let div = document.createElement("div");
+  const div = document.createElement("div");
   div.className = "color";
   div.style.background = c;
-  div.onclick = () => color = c;
+
+  div.addEventListener("click", () => {
+    color = c;
+  });
+
   palette.appendChild(div);
 });
 
-// استقبال الرسم القديم
 socket.on("init", (strokes) => {
   strokes.forEach(drawLine);
 });
@@ -81,25 +99,31 @@ socket.on("draw", (data) => {
 });
 
 socket.on("clear", () => {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
 canvas.addEventListener("mousedown", (e) => {
   drawing = true;
-  last = { x: e.clientX, y: e.clientY };
+  last = {
+    x: e.clientX,
+    y: e.clientY
+  };
 });
 
-canvas.addEventListener("mouseup", () => {
+window.addEventListener("mouseup", () => {
   drawing = false;
   last = null;
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (!drawing) return;
+  if (!drawing || !last) return;
 
-  let current = { x: e.clientX, y: e.clientY };
+  const current = {
+    x: e.clientX,
+    y: e.clientY
+  };
 
-  let data = {
+  const data = {
     x1: last.x,
     y1: last.y,
     x2: current.x,
@@ -116,6 +140,7 @@ canvas.addEventListener("mousemove", (e) => {
 function drawLine(data) {
   ctx.strokeStyle = data.color;
   ctx.lineWidth = 3;
+  ctx.lineCap = "round";
 
   ctx.beginPath();
   ctx.moveTo(data.x1, data.y1);
@@ -124,7 +149,7 @@ function drawLine(data) {
 }
 
 function clearBoard() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   socket.emit("clear");
 }
 </script>
